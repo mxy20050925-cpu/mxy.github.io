@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SenseConnect | 自闭症儿童情绪干预数字平台</title>
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- 引入 Lucide 图标库 (通过 CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #63B3ED;
+            --success: #68D391;
+            --warning: #F6AD55;
+            --bg-light: #F7FAFC;
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --card-bg: #FFFFFF;
+            --sidebar-width: 260px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* 侧边栏样式 */
+        aside {
+            width: var(--sidebar-width);
+            background: #FFFFFF;
+            border-right: 1px solid #E2E8F0;
+            padding: 2rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 2.5rem;
+        }
+
+        nav ul {
+            list-style: none;
+        }
+
+        nav li {
+            padding: 0.8rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            color: var(--text-muted);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        nav li:hover, nav li.active {
+            background: #EDF2F7;
+            color: var(--primary);
+        }
+
+        .disclaimer {
+            margin-top: auto;
+            font-size: 11px;
+            color: #A0AEC0;
+            line-height: 1.4;
+            padding: 1rem;
+            background: #F8FAFC;
+            border-radius: 8px;
+        }
+
+        /* 主体内容区域 */
+        main {
+            margin-left: var(--sidebar-width);
+            flex: 1;
+            padding: 2rem;
+            max-width: calc(100vw - var(--sidebar-width));
+        }
+
+        .page-content {
+            display: none; /* 默认隐藏所有页面 */
+        }
+
+        .page-content.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        header {
+            margin-bottom: 2rem;
+        }
+
+        h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+        .subtitle { color: var(--text-muted); font-size: 0.9rem; }
+
+        /* 网格布局 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* 卡片样式 */
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid #E2E8F0;
+        }
+
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 数值显示 */
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #EBF8FF;
+            color: #3182CE;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        /* 表格样式 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #EDF2F7;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #EDF2F7;
+            font-size: 0.9rem;
+        }
+
+        /* 训练建议样式 */
+        .plan-item {
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            background: #F0F7FF;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .plan-tag {
+            font-size: 12px;
+            padding: 2px 8px;
+            background: #fff;
+            border: 1px solid #D1E9FF;
+            border-radius: 12px;
+            margin-right: 5px;
+        }
+
+        /* 环形进度条 */
+        .progress-circle {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        /* 简易热力图示意 */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 1024px) {
+            :root { --sidebar-width: 80px; }
+            .sidebar-text { display: none; }
+            aside { padding: 1.5rem 0.5rem; align-items: center; }
+            .logo span { display: none; }
+            main { margin-left: 80px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 侧边栏导航 -->
+    <aside>
+        <div class="logo">
+            <i data-lucide="brain-circuit"></i>
+            <span class="sidebar-text">SenseConnect</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="active" onclick="showPage('dashboard', this)">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span class="sidebar-text">控制台首页</span>
+                </li>
+                <li onclick="showPage('behavior', this)">
+                    <i data-lucide="fingerprint"></i>
+                    <span class="sidebar-text">行为数据分析</span>
+                </li>
+                <li onclick="showPage('emotion', this)">
+                    <i data-lucide="heart-pulse"></i>
+                    <span class="sidebar-text">情绪趋势评估</span>
+                </li>
+                <li onclick="showPage('training', this)">
+                    <i data-lucide="sparkles"></i>
+                    <span class="sidebar-text">AI 训练方案</span>
+                </li>
+                <li onclick="showPage('profile', this)">
+                    <i data-lucide="user-circle"></i>
+                    <span class="sidebar-text">儿童档案报告</span>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="disclaimer">
+            <strong>免责声明：</strong><br>
+            本系统不用于医疗诊断，仅用于辅助情绪训练与评估。
+        </div>
+    </aside>
+
+    <main>
+        <!-- 1. 首页 Dashboard -->
+        <section id="dashboard" class="page-content active">
+            <header>
+                <h1>今日概览 - 晨晨 (ID: 8829)</h1>
+                <p class="subtitle">AI 已基于近 24 小时互动数据更新评估结论</p>
+            </header>
+
+            <div class="grid">
+                <div class="card" style="text-align: center;">
+                    <div class="card-title">情绪稳定指数</div>
+                    <div class="progress-circle">
+                        <canvas id="stabilityChart"></canvas>
+                        <div style="position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size: 1.5rem; font-weight: bold;">82%</div>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--success);">较昨日提升 5% ↑</p>
+                </div>
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-title">最近 7 天情绪波动趋势</div>
+                    <canvas id="weeklyTrendChart" height="120"></canvas>
+                </div>
+            </div>
+
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">本周统计</div>
+                    <div style="display: flex; justify-content: space-around; padding: 1rem 0;">
+                        <div>
+                            <p class="subtitle">互动总时长</p>
+                            <p class="stat-value">12.5h</p>
+                        </div>
+                        <div style="border-left: 1px solid #EEE; padding-left: 2rem;">
+                            <p class="subtitle">计划完成率</p>
+                            <p class="stat-value">92%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">AI 智能解读</div>
+                    <div class="ai-badge"><i data-lucide="bot" size="14"></i>&nbsp;AI 实时分析</div>
+                    <p style="font-size: 0.95rem; line-height: 1.6; color: var(--text-main);">
+                        晨晨最近 48 小时内对“触觉反馈”的反应阈值有所提高，表现出更好的耐心。在面对装置的强光反馈时，焦虑心率波动从 15% 降至 8%，建议进入“感官进阶”训练阶段。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 行为数据分析页 -->
+        <section id="behavior" class="page-content">
+            <header>
+                <h1>原始行为特征提取</h1>
+                <p class="subtitle">感知装置采集的毫秒级交互原始数据</p>
+            </header>
+            <div class="grid" style="grid-template-columns: 2fr 1fr;">
+                <div class="card">
+                    <div class="card-title">实时交互流记录</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>时间戳</th>
+                                <th>动作类型</th>
+                                <th>力度/距离</th>
+                                <th>持续时长</th>
+                                <th>状态判定</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>14:20:05</td><td>长按顶部触感区</td><td>4.2 N</td><td>3.5s</td><td>探索性</td></tr>
+                            <tr><td>14:21:12</td><td>快速敲击两侧</td><td>6.8 N</td><td>0.5s</td><td>刻板反应</td></tr>
+                            <tr><td>14:22:30</td><td>手部距离变化</td><td>15-40cm</td><td>12s</td><td>避缩倾向</td></tr>
+                            <tr><td>14:25:00</td><td>震动按钮互动</td><td>2.1 N</td><td>45s</td><td>专注</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card">
+                    <div class="card-title">交互热力图 (示意)</div>
+                    <div class="heatmap-grid" id="heatmap">
+                        <!-- JS 填充 -->
+                    </div>
+                    <p class="subtitle" style="margin-top: 1rem;">* 顶部区域 (左上) 是主要互动区，反映了儿童对高频色彩反馈的偏好。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 情绪趋势与评估页 -->
+        <section id="emotion" class="page-content">
+            <header>
+                <h1>情绪多维度评估</h1>
+                <p class="subtitle">基于生理信号与行为特征融合计算的结果</p>
+            </header>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">情绪维度雷达图</div>
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <div class="card">
+                    <div class="card-title">当前阶段标签</div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2rem;">
+                        <span class="ai-badge" style="background:#E6FFFA; color:#2C7A7B; padding: 1rem;">触觉高耐受度</span>
+                        <span class="ai-badge" style="background:#FAF5FF; color:#6B46C1; padding: 1rem;">视觉敏感期</span>
+                        <span class="ai-badge" style="background:#FFF5F5; color:#C53030; padding: 1rem;">社交启动较慢</span>
+                    </div>
+                    <div style="margin-top: 2rem; border-top: 1px solid #EEE; padding-top: 1rem;">
+                        <h4>阶段性结论：</h4>
+                        <p class="subtitle" style="margin-top: 0.5rem; line-height: 1.5;">
+                            受试者目前处于“情绪平稳期”。雷达图显示其“主动性”较上周期有明显右移（+12%），说明对交互装置产生了信任感，可以增加社交模拟互动。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 训练方案生成页 -->
+        <section id="training" class="page-content">
+            <header>
+                <h1>AI 个性化干预方案生成</h1>
+                <p class="subtitle">基于大数据比对生成的针对性训练路径</p>
+            </header>
+            <div class="card">
+                <div class="ai-badge" style="margin-bottom: 1.5rem;"><i data-lucide="sparkles" size="14"></i>&nbsp;方案已优化（2026-01-02）</div>
+                <div class="plan-item">
+                    <div style="font-weight: bold; margin-bottom: 0.5rem;">方案 A：多感官融合探索 (推荐)</div>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.8rem;">针对当前视觉敏感特征，采用低饱和度光效配合 40Hz 舒缓震动。</p>
+                    <div>
+                        <span class="plan-tag">建议频率：3次/周</span>
+                        <span class="plan-tag">单次时长：15-20min</span>
+                        <span class="plan-tag">感官组合：触觉+视觉</span>
+                    </div>
+                </div>
+                <div class="plan-item" style="border-left-color: var(--success);">
+                    <div style="font-weight: bold; margin-bottom: 0.5rem;">方案 B：情绪自控力进阶</div>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0.8rem;">通过装置模拟轻微的“意外反馈”，观察并引导儿童的情绪平复过程。</p>
+                    <div>
+                        <span class="plan-tag">建议频率：1次/周</span>
+                        <span class="plan-tag">单次时长：10min</span>
+                        <span class="plan-tag">感官组合：听觉+触觉</span>
+                    </div>
+                </div>
+                <div style="margin-top: 2rem; background: #F7FAFC; padding: 1.5rem; border-radius: 8px;">
+                    <h4><i data-lucide="target" size="18" style="vertical-align: middle;"></i> 预期效果说明</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem;">
+                        预计通过 4 周的方案 A 训练，儿童在面对突发强光环境时的极端情绪发生频率将降低 20%-30%，且能够建立初步的“主动触碰获取安抚”的行为逻辑。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 儿童档案与报告页 -->
+        <section id="profile" class="page-content">
+            <header>
+                <h1>儿童成长档案</h1>
+            </header>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">基本信息</div>
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <div style="width: 80px; height: 80px; background: #E2E8F0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: white;">晨</div>
+                        <div>
+                            <p><strong>姓名：</strong> 晨晨</p>
+                            <p><strong>性别：</strong> 男</p>
+                            <p><strong>年龄：</strong> 6岁 4个月</p>
+                            <p><strong>建档日期：</strong> 2025-09-12</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">报告生成中心</div>
+                    <p class="subtitle">可导出 PDF 报告供家长和评估师参考</p>
+                    <button style="margin-top: 1.5rem; width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                        <i data-lucide="file-down" size="18"></i> 生成月度详细干预报告
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // 初始化图标
+        lucide.createIcons();
+
+        // 页面切换逻辑
+        function showPage(pageId, element) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page-content').forEach(page => {
+                page.classList.remove('active');
+            });
+            // 显示选中页面
+            document.getElementById(pageId).classList.add('active');
+
+            // 侧边栏样式切换
+            document.querySelectorAll('nav li').forEach(li => {
+                li.classList.remove('active');
+            });
+            element.classList.add('active');
+        }
+
+        // --- 图表配置 ---
+
+        // 1. 首页环形进度条
+        const stabilityCtx = document.getElementById('stabilityChart').getContext('2d');
+        new Chart(stabilityCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [82, 18],
+                    backgroundColor: ['#4A90E2', '#EDF2F7'],
+                    borderWidth: 0,
+                    circumference: 270,
+                    rotation: 225
+                }]
+            },
+            options: {
+                cutout: '80%',
+                plugins: { tooltip: { enabled: false } }
+            }
+        });
+
+        // 2. 7天情绪波动图
+        const trendCtx = document.getElementById('weeklyTrendChart').getContext('2d');
+        new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: ['周一', '周二', '周三', '周四', '周五', '周六', '今日'],
+                datasets: [{
+                    label: '情绪稳定值',
+                    data: [65, 68, 75, 72, 80, 78, 82],
+                    borderColor: '#4A90E2',
+                    backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { display: true, min: 0, max: 100 }, x: { grid: { display: false } } }
+            }
+        });
+
+        // 3. 维度雷达图
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['互动稳定性', '社交主动性', '耐受度', '指令遵循', '自我调节'],
+                datasets: [{
+                    label: '本阶段评估',
+                    data: [85, 45, 70, 60, 50],
+                    backgroundColor: 'rgba(104, 211, 145, 0.2)',
+                    borderColor: '#68D391',
+                    pointBackgroundColor: '#68D391'
+                }, {
+                    label: '基准期',
+                    data: [60, 30, 40, 55, 30],
+                    backgroundColor: 'rgba(160, 174, 192, 0.1)',
+                    borderColor: '#A0AEC0',
+                    borderDash: [5, 5]
+                }]
+            },
+            options: {
+                scales: {
+                    r: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+
+        // 4. 模拟生成热力图
+        const heatmap = document.getElementById('heatmap');
+        for (let i = 0; i < 25; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'heatmap-cell';
+            const opacity = Math.random();
+            cell.style.backgroundColor = `rgba(74, 144, 226, ${opacity})`;
+            heatmap.appendChild(cell);
+        }
+    </script>
+</body>
+</html>
